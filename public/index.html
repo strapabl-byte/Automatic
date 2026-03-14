@@ -214,32 +214,57 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        loginBtn.onclick = async () => {
+        const login = async (username, password) => {
             loginBtn.innerText = "Connecting...";
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: document.getElementById('username').value,
-                    password: document.getElementById('password').value
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                // Pre-fill Discord URL if already on server
-                const statusRes = await fetch('/api/status');
-                const statusData = await statusRes.json();
-                if (statusData.discordWebhookUrl) {
-                    document.getElementById('discord-url').value = statusData.discordWebhookUrl;
-                }
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // SAVE FOR SESSION PERSISTENCE
+                    localStorage.setItem('pdc_user', username);
+                    localStorage.setItem('pdc_pass', password);
 
-                loginSection.style.display = 'none';
-                dashboardSection.style.display = 'block';
-                document.getElementById('user-display').innerText = data.user.name;
-                addLog(`Log-in successful. Token acquired.`);
-            } else {
-                alert("Login failed: " + data.message);
+                    // Pre-fill Discord URL if already on server
+                    const statusRes = await fetch('/api/status');
+                    const statusData = await statusRes.json();
+                    if (statusData.discordWebhookUrl) {
+                        document.getElementById('discord-url').value = statusData.discordWebhookUrl;
+                    }
+
+                    loginSection.style.display = 'none';
+                    dashboardSection.style.display = 'block';
+                    document.getElementById('user-display').innerText = data.user.name;
+                    addLog(`Log-in successful. Session active.`);
+                    return true;
+                } else {
+                    alert("Login failed: " + data.message);
+                    loginBtn.innerText = "Secure Login";
+                    return false;
+                }
+            } catch (e) {
+                alert("Connection Error. Is the server running?");
                 loginBtn.innerText = "Secure Login";
+                return false;
+            }
+        };
+
+        loginBtn.onclick = () => {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            login(user, pass);
+        };
+
+        // AUTO-LOGIN ON LOAD
+        window.onload = () => {
+            const savedUser = localStorage.getItem('pdc_user');
+            const savedPass = localStorage.getItem('pdc_pass');
+            if (savedUser && savedPass) {
+                addLog("Auto-login in progress...");
+                login(savedUser, savedPass);
             }
         };
 
@@ -291,7 +316,11 @@
             }
         };
 
-        logoutBtn.onclick = () => location.reload();
+        logoutBtn.onclick = () => {
+            localStorage.removeItem('pdc_user');
+            localStorage.removeItem('pdc_pass');
+            location.reload();
+        };
 
         let currentVersion = null;
 

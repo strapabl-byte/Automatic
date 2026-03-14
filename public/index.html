@@ -168,6 +168,13 @@
                 </label>
             </div>
 
+            <div id="telegram-settings" style="text-align: left; margin-bottom: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 10px;">TELEGRAM NOTIFICATIONS (Optional)</label>
+                <input type="text" id="tg-token" placeholder="Bot Token (from @BotFather)" style="font-size: 12px; padding: 10px; margin-bottom: 10px;">
+                <input type="text" id="tg-chatid" placeholder="Chat ID (your ID)" style="font-size: 12px; padding: 10px; margin-bottom: 0;">
+                <p style="font-size: 10px; margin-top: 8px; margin-bottom: 0; color: #a0a0c0;">Get your ID from @userinfobot</p>
+            </div>
+
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-val" id="delivered-count">37</div>
@@ -225,11 +232,18 @@
 
         autoToggle.onchange = async () => {
             const active = autoToggle.checked;
+            const telegramToken = document.getElementById('tg-token').value;
+            const telegramChatId = document.getElementById('tg-chatid').value;
+
             addLog(active ? "Connecting WebSocket Platform..." : "Disconnecting...");
             const res = await fetch('/api/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active })
+                body: JSON.stringify({ 
+                    active,
+                    telegramToken,
+                    telegramChatId
+                })
             });
             const data = await res.json();
             if (data.success) {

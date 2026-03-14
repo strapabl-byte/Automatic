@@ -185,39 +185,71 @@ async function acceptNextOrder() {
     if (!userData.token || !userData.isAutoAcceptActive) return;
     
     try {
-        // Fetch pending orders to get the ID
+        // Fetch all current orders for the user
         const response = await pdcApi.get(`/users/${userData.userId}/orders/`, {
             headers: { 'Authorization': `Bearer ${userData.token}` }
         });
         
-        const pendingOrders = response.data.filter(o => o.status === 'pending');
+        console.log("DEBUG: Current Orders Count:", response.data.length);
         
-        if (pendingOrders.length > 0) {
-            const order = pendingOrders[0]; // ONLY GET ONE
+        // Find orders that are either 'pending' or look like they need to be 'taken'
+        // We'll broaden the search to pick up anything that isn't already accepted/completed
+        const actionableOrders = response.data.filter(o => 
+            o.status === 'pending' || 
+            o.status === 'available' || 
+            o.status === 'broadcast' ||
+            !o.rider_id // If no rider is assigned yet
+        );
+        
+        if (actionableOrders.length > 0) {
+            const order = actionableOrders[0];
             
-            console.log(`ONE-SHOT ACCEPTING: #${order.id}`);
-            await pdcApi.post(`/users/${userData.userId}/orders/accept/`, 
-                { order_id: order.id },
-                { headers: { 'Authorization': `Bearer ${userData.token}` } }
-            );
+            console.log(`POUNCING ON ORDER: #${order.id} [Status: ${order.status}]`);
+            console.log("FULL ORDER DATA:", JSON.stringify(order, null, 2));
+
+            // 1. TRY TO "TAKE" (ASSIGN) THE ORDER
+            try {
+                console.log(`Attempting /taken/ (Assign) for #${order.id}...`);
+                await pdcApi.post(`/users/${userData.userId}/orders/${order.id}/taken/`, 
+                    {}, 
+                    { headers: { 'Authorization': `Bearer ${userData.token}` } }
+                );
+                console.log("SUCCESS: Order Taken/Assigned.");
+            } catch (err) {
+                console.log("Taken failed (maybe already taken or not needed):", err.message);
+            }
+
+            // 2. TRY TO "ACCEPT" THE ORDER
+            try {
+                console.log(`Attempting /accept/ for #${order.id}...`);
+                await pdcApi.post(`/users/${userData.userId}/orders/accept/`, 
+                    { order_id: order.id },
+                    { headers: { 'Authorization': `Bearer ${userData.token}` } }
+                );
+                console.log("SUCCESS: Order Accepted.");
+            } catch (err) {
+                console.log("Accept failed (maybe already accepted):", err.message);
+            }
             
             userData.acceptedOrders.push({
                 id: order.id,
                 time: new Date().toLocaleTimeString(),
-                status: 'Accepted (One-Shot Mode)'
+                status: `Captured [Initial: ${order.status}]`
             });
 
             // SEND DISCORD NOTIFICATION
-            const msg = `🚀 **ORDER ACCEPTED!**\n\nOrder: #${order.id}\nRider: ${userData.userName}\nTime: ${new Date().toLocaleTimeString()}\n\n*Dashboard deactivated for safety.*`;
+            const msg = `🚀 **ORDER CAPTURED!**\n\nOrder: #${order.id}\nInitial Status: ${order.status}\nRider: ${userData.userName}\nTime: ${new Date().toLocaleTimeString()}\n\n*Dashboard deactivated for safety.*`;
             await sendDiscordMessage(msg);
 
             // --- THE KILL SWITCH ---
-            console.log("ONE ORDER SECURED. Deactivating for safety.");
+            console.log("ORDER SECURED. Deactivating for safety.");
             userData.isAutoAcceptActive = false;
-            disconnectWebSocket(); // Turn off the listener automatically
+            disconnectWebSocket(); 
+        } else {
+            console.log("No actionable orders found in the list.");
         }
     } catch (error) {
-        console.error("Accept Error:", error.message);
+        console.error("Accept Engine Error:", error.message);
     }
 }
 

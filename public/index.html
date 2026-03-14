@@ -170,8 +170,11 @@
 
             <div id="telegram-settings" style="text-align: left; margin-bottom: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
                 <label style="font-size: 12px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 10px;">DISCORD NOTIFICATIONS (Optional)</label>
-                <input type="text" id="discord-url" placeholder="Discord Webhook URL" style="font-size: 12px; padding: 10px; margin-bottom: 0;">
-                <p style="font-size: 10px; margin-top: 8px; margin-bottom: 0; color: #a0a0c0;">Get your Discord URL from: Channel Settings > Integrations</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="discord-url" placeholder="Discord Webhook URL" style="font-size: 12px; padding: 10px; margin-bottom: 0; flex: 1;">
+                    <button id="test-discord-btn" style="width: auto; padding: 0 15px; font-size: 11px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">Test</button>
+                </div>
+                <p style="font-size: 10px; margin-top: 0px; margin-bottom: 0; color: #a0a0c0;">Get your Discord URL from: Channel Settings > Integrations</p>
             </div>
 
             <div class="stat-grid">
@@ -226,6 +229,35 @@
             } else {
                 alert("Login failed: " + data.message);
                 loginBtn.innerText = "Secure Login";
+            }
+        };
+
+        const testDiscordBtn = document.getElementById('test-discord-btn');
+
+        testDiscordBtn.onclick = async () => {
+            const webhookUrl = document.getElementById('discord-url').value;
+            if (!webhookUrl) return alert("Please enter a Discord Webhook URL first.");
+            
+            testDiscordBtn.innerText = "Testing...";
+            testDiscordBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/test-discord', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ webhookUrl })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    addLog("DISCORD TEST: Message sent successfully!");
+                } else {
+                    addLog("DISCORD ERROR: " + data.message);
+                }
+            } catch (e) {
+                addLog("DISCORD ERROR: " + e.message);
+            } finally {
+                testDiscordBtn.innerText = "Test";
+                testDiscordBtn.disabled = false;
             }
         };
 

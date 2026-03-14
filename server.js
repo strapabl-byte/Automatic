@@ -68,6 +68,21 @@ app.get('/api/status', (req, res) => {
     res.json(userData);
 });
 
+// TEST DISCORD
+app.post('/api/test-discord', async (req, res) => {
+    const { webhookUrl } = req.body;
+    if (!webhookUrl) return res.status(400).json({ success: false, message: 'Missing Webhook URL' });
+    
+    try {
+        await axios.post(webhookUrl, {
+            content: "🛠️ **DASHBOARD TEST**: Your Discord connection is active and ready!"
+        });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // TOGGLE AUTO-ACCEPT
 app.post('/api/toggle', (req, res) => {
     userData.isAutoAcceptActive = req.body.active;

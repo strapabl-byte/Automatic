@@ -37,7 +37,8 @@ async function sendDiscordMessage(text) {
 }
 
 let ws = null;
-let pollingInterval = null; // Replaced by WS, but kept for fallback or status
+let pollingInterval = null; 
+let lastScanTime = 0;
 
 // Helper to interact with PDC API
 const pdcApi = axios.create({
@@ -103,12 +104,32 @@ app.post('/api/toggle', (req, res) => {
     
     if (userData.isAutoAcceptActive) {
         connectWebSocket();
+        startPolling();
     } else {
         disconnectWebSocket();
+        stopPolling();
     }
     
     res.json({ success: true, active: userData.isAutoAcceptActive });
 });
+
+function startPolling() {
+    if (pollingInterval) return;
+    console.log("MLC Engine: Starting High-Frequency Polling (5s Fallback)");
+    pollingInterval = setInterval(() => {
+        if (userData.isAutoAcceptActive && userData.token) {
+            acceptNextOrder();
+        }
+    }, 5000); // 5 second scan cycle
+}
+
+function stopPolling() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+        console.log("MLC Engine: Polling Stopped.");
+    }
+}
 
 function connectWebSocket() {
     if (ws) return;
@@ -184,72 +205,74 @@ function disconnectWebSocket() {
 async function acceptNextOrder() {
     if (!userData.token || !userData.isAutoAcceptActive) return;
     
+    // Antigravity Throttling: Prevent multiple scans at the exact same millisecond
+    const now = Date.now();
+    if (now - lastScanTime < 1000) return;
+    lastScanTime = now;
+
     try {
-        // Fetch all current orders for the user
         const response = await pdcApi.get(`/users/${userData.userId}/orders/`, {
             headers: { 'Authorization': `Bearer ${userData.token}` }
         });
         
-        console.log("DEBUG: Current Orders Count:", response.data.length);
-        
-        // Find orders that are either 'pending' or look like they need to be 'taken'
-        // We'll broaden the search to pick up anything that isn't already accepted/completed
-        const actionableOrders = response.data.filter(o => 
+        // Find ANY order that is not finished
+        const actionableOrders = (response.data || []).filter(o => 
             o.status === 'pending' || 
             o.status === 'available' || 
             o.status === 'broadcast' ||
-            !o.rider_id // If no rider is assigned yet
+            o.status === 'created' ||
+            !o.rider_id
         );
         
         if (actionableOrders.length > 0) {
             const order = actionableOrders[0];
             
-            console.log(`POUNCING ON ORDER: #${order.id} [Status: ${order.status}]`);
-            console.log("FULL ORDER DATA:", JSON.stringify(order, null, 2));
-
-            // 1. TRY TO "TAKE" (ASSIGN) THE ORDER
+            console.log(`MLC CAPTURE DETECTED: #${order.id} [State: ${order.status}]`);
+            
+            // Step 1: TRY TO "TAKE" (This matches the "Assignar comanda" button)
             try {
-                console.log(`Attempting /taken/ (Assign) for #${order.id}...`);
                 await pdcApi.post(`/users/${userData.userId}/orders/${order.id}/taken/`, 
                     {}, 
                     { headers: { 'Authorization': `Bearer ${userData.token}` } }
                 );
-                console.log("SUCCESS: Order Taken/Assigned.");
+                console.log(`[MLC] Order #${order.id} assigned successfully.`);
             } catch (err) {
-                console.log("Taken failed (maybe already taken or not needed):", err.message);
+                // Ignore errors if already taken
             }
 
-            // 2. TRY TO "ACCEPT" THE ORDER
+            // Step 2: TRY TO "ACCEPT" (The final confirmation)
             try {
-                console.log(`Attempting /accept/ for #${order.id}...`);
                 await pdcApi.post(`/users/${userData.userId}/orders/accept/`, 
                     { order_id: order.id },
                     { headers: { 'Authorization': `Bearer ${userData.token}` } }
                 );
-                console.log("SUCCESS: Order Accepted.");
+                console.log(`[MLC] Order #${order.id} accepted successfully.`);
             } catch (err) {
-                console.log("Accept failed (maybe already accepted):", err.message);
+                // Ignore errors if already accepted
             }
             
-            userData.acceptedOrders.push({
-                id: order.id,
-                time: new Date().toLocaleTimeString(),
-                status: `Captured [Initial: ${order.status}]`
-            });
+            // Mark as captured in our local history
+            if (!userData.acceptedOrders.find(o => o.id === order.id)) {
+                userData.acceptedOrders.push({
+                    id: order.id,
+                    time: new Date().toLocaleTimeString(),
+                    status: `Secured [Initial: ${order.status}]`
+                });
 
-            // SEND DISCORD NOTIFICATION
-            const msg = `🚀 **ORDER CAPTURED!**\n\nOrder: #${order.id}\nInitial Status: ${order.status}\nRider: ${userData.userName}\nTime: ${new Date().toLocaleTimeString()}\n\n*Dashboard deactivated for safety.*`;
-            await sendDiscordMessage(msg);
+                // Notify Discord
+                await sendDiscordMessage(`🎯 **ORDER SECURED!**\n\nOrder: #${order.id}\nStatus: ${order.status}\n\n*Dashboard deactivated to prevent double-booking.*`);
+            }
 
-            // --- THE KILL SWITCH ---
-            console.log("ORDER SECURED. Deactivating for safety.");
+            // Kill-switch for safety
             userData.isAutoAcceptActive = false;
-            disconnectWebSocket(); 
-        } else {
-            console.log("No actionable orders found in the list.");
+            disconnectWebSocket();
+            stopPolling();
         }
     } catch (error) {
-        console.error("Accept Engine Error:", error.message);
+        // Only log serious errors
+        if (error.response?.status !== 401) {
+            console.error("MLC Engine Scan Error:", error.message);
+        }
     }
 }
 

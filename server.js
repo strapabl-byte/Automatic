@@ -71,15 +71,26 @@ app.get('/api/status', (req, res) => {
 // TEST DISCORD
 app.post('/api/test-discord', async (req, res) => {
     const { webhookUrl } = req.body;
+    console.log("Discord Test Request for URL:", webhookUrl ? webhookUrl.substring(0, 30) + "..." : "NONE");
+    
     if (!webhookUrl) return res.status(400).json({ success: false, message: 'Missing Webhook URL' });
     
     try {
         await axios.post(webhookUrl, {
-            content: "🛠️ **DASHBOARD TEST**: Your Discord connection is active and ready!"
+            content: "🛠️ **DASHBOARD TEST**: Your Discord connection from Render is active and ready!"
+        }, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         });
+        console.log("Discord Test: Success");
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error("Discord Test Error:", error.response?.data || error.message);
+        res.status(500).json({ 
+            success: false, 
+            message: error.response?.data?.message || error.message 
+        });
     }
 });
 

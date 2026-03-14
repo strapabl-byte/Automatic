@@ -169,9 +169,7 @@
             </div>
 
             <div id="telegram-settings" style="text-align: left; margin-bottom: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-                <label style="font-size: 12px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 10px;">PUSH NOTIFICATIONS (Optional)</label>
-                <input type="text" id="tg-token" placeholder="Telegram Bot Token" style="font-size: 12px; padding: 10px; margin-bottom: 10px;">
-                <input type="text" id="tg-chatid" placeholder="Telegram Chat ID" style="font-size: 12px; padding: 10px; margin-bottom: 10px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 10px;">DISCORD NOTIFICATIONS (Optional)</label>
                 <input type="text" id="discord-url" placeholder="Discord Webhook URL" style="font-size: 12px; padding: 10px; margin-bottom: 0;">
                 <p style="font-size: 10px; margin-top: 8px; margin-bottom: 0; color: #a0a0c0;">Get your Discord URL from: Channel Settings > Integrations</p>
             </div>
@@ -233,8 +231,6 @@
 
         autoToggle.onchange = async () => {
             const active = autoToggle.checked;
-            const telegramToken = document.getElementById('tg-token').value;
-            const telegramChatId = document.getElementById('tg-chatid').value;
             const discordWebhookUrl = document.getElementById('discord-url').value;
 
             addLog(active ? "Connecting WebSocket Platform..." : "Disconnecting...");
@@ -243,8 +239,6 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     active,
-                    telegramToken,
-                    telegramChatId,
                     discordWebhookUrl
                 })
             });

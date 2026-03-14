@@ -20,7 +20,7 @@ let userData = {
     isAutoAcceptActive: false,
     acceptedOrders: [],
     wsStatus: 'Disconnected',
-    discordWebhookUrl: ''
+    discordWebhookUrl: 'https://discord.com/api/webhooks/1482195526693949724/TvbZ6bhsEN6tGbCNYlzsV6ejVZNvEwv2uFD0WKeTTeLJb5oht1BPXdaWWmGj0shOuzcK'
 };
 
 // HELPER: Send Discord Notification

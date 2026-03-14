@@ -226,6 +226,13 @@
             });
             const data = await res.json();
             if (data.success) {
+                // Pre-fill Discord URL if already on server
+                const statusRes = await fetch('/api/status');
+                const statusData = await statusRes.json();
+                if (statusData.discordWebhookUrl) {
+                    document.getElementById('discord-url').value = statusData.discordWebhookUrl;
+                }
+
                 loginSection.style.display = 'none';
                 dashboardSection.style.display = 'block';
                 document.getElementById('user-display').innerText = data.user.name;

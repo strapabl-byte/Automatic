@@ -160,7 +160,11 @@
             <div class="toggle-container">
                 <div>
                     <div style="font-weight: 600;">Auto-Accept Mode</div>
-                    <div id="ws-status" style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Disconnected</div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                        <div id="ws-status" style="font-size: 10px; color: var(--text-dim);">Disconnected</div>
+                        <span style="color: rgba(255,255,255,0.2);">|</span>
+                        <a href="#" onclick="location.reload()" style="font-size: 10px; color: var(--accent); text-decoration: none; font-weight: 600;">Refresh App</a>
+                    </div>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="auto-toggle">
@@ -282,21 +286,36 @@
 
         logoutBtn.onclick = () => location.reload();
 
+        let currentVersion = null;
+
         // Refresh status every 3 seconds
         setInterval(async () => {
             if (dashboardSection.style.display === 'block') {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                
-                wsStatusEl.innerText = data.wsStatus;
-                wsStatusEl.style.color = data.wsStatus === 'Connected (Real-Time)' ? '#00ff7f' : '#a0a0c0';
-
-                if (data.acceptedOrders.length > 0) {
-                    const last = data.acceptedOrders[data.acceptedOrders.length - 1];
-                    // Only log if not already logged
-                    if (!logBox.innerText.includes(`Order #${last.id}`)) {
-                        addLog(`SUCCESS: Automatically accepted Order #${last.id} via REAL-TIME REFRESH`);
+                try {
+                    const res = await fetch('/api/status');
+                    const data = await res.json();
+                    
+                    // AUTO-REFRESH ON UPDATE
+                    if (currentVersion === null) {
+                        currentVersion = data.version;
+                    } else if (data.version && data.version !== currentVersion) {
+                        addLog("NEW UPDATE DETECTED! Refreshing dashboard...");
+                        setTimeout(() => location.reload(), 2000);
+                        return;
                     }
+
+                    wsStatusEl.innerText = data.wsStatus;
+                    wsStatusEl.style.color = data.wsStatus === 'Connected (Real-Time)' ? '#00ff7f' : '#a0a0c0';
+
+                    if (data.acceptedOrders.length > 0) {
+                        const last = data.acceptedOrders[data.acceptedOrders.length - 1];
+                        // Only log if not already logged
+                        if (!logBox.innerText.includes(`Order #${last.id}`)) {
+                            addLog(`SUCCESS: Automatically accepted Order #${last.id} via REAL-TIME REFRESH`);
+                        }
+                    }
+                } catch (e) {
+                    wsStatusEl.innerText = 'Reconnecting...';
                 }
             }
         }, 3000);

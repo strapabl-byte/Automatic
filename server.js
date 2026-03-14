@@ -11,6 +11,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+const VERSION = '1.0.1';
+
 let userData = {
     token: null,
     userId: null,
@@ -65,7 +67,7 @@ app.post('/api/login', async (req, res) => {
 
 // STATUS
 app.get('/api/status', (req, res) => {
-    res.json(userData);
+    res.json({ ...userData, version: VERSION });
 });
 
 // TEST DISCORD

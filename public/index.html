@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDC Rider | Auto-Accept Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0a1e;
+            --card: #1a142e;
+            --primary: #00ff7f;
+            --accent: #7b2ffb;
+            --text: #ffffff;
+            --text-dim: #a0a0c0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+
+        .logo { width: 120px; margin-bottom: 20px; }
+        h1 { font-weight: 800; font-size: 28px; margin-bottom: 10px; }
+        p { color: var(--text-dim); margin-bottom: 30px; font-size: 14px; }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+        input:focus { background: rgba(255,255,255,0.1); border: 1px solid var(--accent); }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(123, 47, 251, 0.3); }
+
+        /* DASHBOARD */
+        .dashboard { display: none; }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 16px;
+        }
+        .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; }
+
+        .toggle-container {
+            background: rgba(0, 255, 127, 0.1);
+            border: 1px solid rgba(0, 255, 127, 0.2);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 26px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .log {
+            text-align: left;
+            background: #000;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 150px;
+            overflow-y: auto;
+            color: #0f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- LOGIN SECTION -->
+        <div id="login-section" class="glass-card">
+            <h1>PDC Simulator</h1>
+            <p>Connect your rider account to start the auto-accept engine.</p>
+            <input type="text" id="username" placeholder="Username" value="omarbellala">
+            <input type="password" id="password" placeholder="Password" value="1234%!">
+            <button id="login-btn">Secure Login</button>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard-section" class="glass-card dashboard">
+            <h1 id="user-display">Omar Bellala</h1>
+            <p>Cloud Auto-Acceptor Active 24/7</p>
+
+            <div class="toggle-container">
+                <div>
+                    <div style="font-weight: 600;">Auto-Accept Mode</div>
+                    <div id="ws-status" style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Disconnected</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="auto-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-val" id="delivered-count">37</div>
+                    <div class="stat-label">Delivered</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">4.8</div>
+                    <div class="stat-label">Rating</div>
+                </div>
+            </div>
+
+            <div id="log" class="log">
+                [SYSTEM] Waiting for activation...
+            </div>
+            <button id="logout-btn" style="background: transparent; margin-top: 20px; font-size: 14px; color: var(--text-dim);">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const autoToggle = document.getElementById('auto-toggle');
+        const loginSection = document.getElementById('login-section');
+        const dashboardSection = document.getElementById('dashboard-section');
+        const logBox = document.getElementById('log');
+        const wsStatusEl = document.getElementById('ws-status');
+
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            logBox.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        loginBtn.onclick = async () => {
+            loginBtn.innerText = "Connecting...";
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loginSection.style.display = 'none';
+                dashboardSection.style.display = 'block';
+                document.getElementById('user-display').innerText = data.user.name;
+                addLog(`Log-in successful. Token acquired.`);
+            } else {
+                alert("Login failed: " + data.message);
+                loginBtn.innerText = "Secure Login";
+            }
+        };
+
+        autoToggle.onchange = async () => {
+            const active = autoToggle.checked;
+            addLog(active ? "Connecting WebSocket Platform..." : "Disconnecting...");
+            const res = await fetch('/api/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active })
+            });
+            const data = await res.json();
+            if (data.success) {
+                addLog(active ? "STEALTH MODE: Listening for orders." : "OFFLINE.");
+            }
+        };
+
+        logoutBtn.onclick = () => location.reload();
+
+        // Refresh status every 3 seconds
+        setInterval(async () => {
+            if (dashboardSection.style.display === 'block') {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                wsStatusEl.innerText = data.wsStatus;
+                wsStatusEl.style.color = data.wsStatus === 'Connected (Real-Time)' ? '#00ff7f' : '#a0a0c0';
+
+                if (data.acceptedOrders.length > 0) {
+                    const last = data.acceptedOrders[data.acceptedOrders.length - 1];
+                    // Only log if not already logged
+                    if (!logBox.innerText.includes(`Order #${last.id}`)) {
+                        addLog(`SUCCESS: Automatically accepted Order #${last.id} via REAL-TIME REFRESH`);
+                    }
+                }
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

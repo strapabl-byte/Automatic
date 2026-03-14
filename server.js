@@ -19,7 +19,8 @@ let userData = {
     acceptedOrders: [],
     wsStatus: 'Disconnected',
     telegramToken: '',
-    telegramChatId: ''
+    telegramChatId: '',
+    discordWebhookUrl: ''
 };
 
 // HELPER: Send Telegram Notification
@@ -35,6 +36,19 @@ async function sendTelegramMessage(text) {
         console.log("Telegram notification sent!");
     } catch (error) {
         console.error("Telegram Error:", error.response?.data?.description || error.message);
+    }
+}
+
+// HELPER: Send Discord Notification
+async function sendDiscordMessage(text) {
+    if (!userData.discordWebhookUrl) return;
+    try {
+        await axios.post(userData.discordWebhookUrl, {
+            content: text.replace(/<[^>]*>/g, '') // Strip HTML for Discord
+        });
+        console.log("Discord notification sent!");
+    } catch (error) {
+        console.error("Discord Error:", error.message);
     }
 }
 
@@ -77,6 +91,7 @@ app.post('/api/toggle', (req, res) => {
     userData.isAutoAcceptActive = req.body.active;
     userData.telegramToken = req.body.telegramToken || '';
     userData.telegramChatId = req.body.telegramChatId || '';
+    userData.discordWebhookUrl = req.body.discordWebhookUrl || '';
     
     if (userData.isAutoAcceptActive) {
         connectWebSocket();
@@ -184,9 +199,10 @@ async function acceptNextOrder() {
                 status: 'Accepted (One-Shot Mode)'
             });
 
-            // SEND TELEGRAM NOTIFICATION
+            // SEND NOTIFICATIONS
             const msg = `🚀 <b>ORDER ACCEPTED!</b>\n\nOrder: #${order.id}\nRider: ${userData.userName}\nTime: ${new Date().toLocaleTimeString()}\n\n<i>Dashboard deactivated as requested.</i>`;
             await sendTelegramMessage(msg);
+            await sendDiscordMessage(msg);
 
             // --- THE KILL SWITCH ---
             console.log("ONE ORDER SECURED. Deactivating for safety.");
